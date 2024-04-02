@@ -6371,7 +6371,7 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
         // Unframed typed for tree nodes
         if (hovered || selected)
         {
-            const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+            const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered && !selected ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
             RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, false);
         }
         RenderNavHighlight(frame_bb, id, nav_highlight_flags);
@@ -8883,7 +8883,7 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, 
     // Render tab shape
     ImDrawList* display_draw_list = window->DrawList;
     const ImU32 tab_col = GetColorU32((held || hovered) ? ImGuiCol_TabHovered : tab_contents_visible ? (tab_bar_focused ? ImGuiCol_TabActive : ImGuiCol_TabUnfocusedActive) : (tab_bar_focused ? ImGuiCol_Tab : ImGuiCol_TabUnfocused));
-    TabItemBackground(display_draw_list, bb, flags, tab_col);
+    docked_window != NULL ? TabItemBackgroundSelected(display_draw_list, bb, flags, tab_col, tab_contents_visible && tab_bar_focused) : TabItemBackground(display_draw_list, bb, flags, tab_col);
     RenderNavHighlight(bb, id);
 
     // Select with right mouse button. This is so the common idiom for context menu automatically highlight the current widget.
@@ -8988,6 +8988,54 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
     draw_list->PathArcToFast(ImVec2(bb.Max.x - rounding, y1 + rounding), rounding, 9, 12);
     draw_list->PathLineTo(ImVec2(bb.Max.x, y2));
     draw_list->PathFillConvex(col);
+    if (g.Style.TabBorderSize > 0.0f)
+    {
+        draw_list->PathLineTo(ImVec2(bb.Min.x + 0.5f, y2));
+        draw_list->PathArcToFast(ImVec2(bb.Min.x + rounding + 0.5f, y1 + rounding + 0.5f), rounding, 6, 9);
+        draw_list->PathArcToFast(ImVec2(bb.Max.x - rounding - 0.5f, y1 + rounding + 0.5f), rounding, 9, 12);
+        draw_list->PathLineTo(ImVec2(bb.Max.x - 0.5f, y2));
+        draw_list->PathStroke(GetColorU32(ImGuiCol_Border), 0, g.Style.TabBorderSize);
+    }
+}
+
+void ImGui::TabItemBackgroundSelected(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImU32 col, bool is_selected)
+{
+    // While rendering tabs, we trim 1 pixel off the top of our bounding box so they can fit within a regular frame height while looking "detached" from it.
+    ImGuiContext& g = *GImGui;
+    const float width = bb.GetWidth();
+    IM_UNUSED(flags);
+    IM_ASSERT(width > 0.0f);
+    const float rounding = ImMax(0.0f, ImMin((flags & ImGuiTabItemFlags_Button) ? g.Style.FrameRounding : g.Style.TabRounding, width * 0.5f - 1.0f));
+    const float y1 = bb.Min.y + 1.0f;
+    const float y2 = bb.Max.y - g.Style.TabBarBorderSize;
+    draw_list->PathLineTo(ImVec2(bb.Min.x, y2));
+    draw_list->PathArcToFast(ImVec2(bb.Min.x + rounding, y1 + rounding), rounding, 6, 9);
+    draw_list->PathArcToFast(ImVec2(bb.Max.x - rounding, y1 + rounding), rounding, 9, 12);
+    draw_list->PathLineTo(ImVec2(bb.Max.x, y2));
+    draw_list->PathFillConvex(col);
+
+    if (is_selected) {
+        const float yf = y1 + (rounding * 0.5f);
+
+        ImGuiStyle& style = GImGui->Style;
+        const float yMax = ceil(style.ScaleFactor);
+        const float half_size = (bb.Max.x - bb.Min.x) / 2;
+
+        ImVec2 p0 = ImVec2(bb.Min.x, yf);
+        ImVec2 p1 = ImVec2(bb.Min.x + half_size, yf + yMax);
+
+        ImVec2 p2 = ImVec2(bb.Min.x + half_size, yf);
+        ImVec2 p3 = ImVec2(bb.Max.x, yf + yMax);
+
+        ImVec4 c = style.Colors[ImGuiCol_ResizeGripHovered];
+
+        ImU32 col_a = ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, 0.1f));
+        ImU32 col_b = ImGui::GetColorU32(c);
+
+        draw_list->AddRectFilledMultiColor(p0, p1, col_a, col_b, col_b, col_a);
+        draw_list->AddRectFilledMultiColor(p2, p3, col_b, col_a, col_a, col_b);
+    }
+
     if (g.Style.TabBorderSize > 0.0f)
     {
         draw_list->PathLineTo(ImVec2(bb.Min.x + 0.5f, y2));
