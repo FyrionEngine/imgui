@@ -9051,11 +9051,12 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, 
         TabItemBackground(display_draw_list, bb, flags, GetColorU32(ImGuiCol_TitleBgActive));
     }
 #endif
+#if     0
 
     // Render tab shape
     ImDrawList* display_draw_list = window->DrawList;
     const ImU32 tab_col = GetColorU32((held || hovered) ? ImGuiCol_TabHovered : tab_contents_visible ? (tab_bar_focused ? ImGuiCol_TabSelected : ImGuiCol_TabDimmedSelected) : (tab_bar_focused ? ImGuiCol_Tab : ImGuiCol_TabDimmed));
-    docked_window != NULL ? TabItemBackgroundSelected(display_draw_list, bb, flags, tab_col, tab_contents_visible && tab_bar_focused) : TabItemBackground(display_draw_list, bb, flags, tab_col);
+    TabItemBackground(display_draw_list, bb, flags, tab_col);
     if (tab_contents_visible && (tab_bar->Flags & ImGuiTabBarFlags_DrawSelectedOverline))
     {
         float x_offset = IM_TRUNC(0.4f * style.TabRounding);
@@ -9065,6 +9066,16 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, 
         display_draw_list->AddLine(bb.GetTL() + ImVec2(x_offset, y_offset), bb.GetTR() + ImVec2(-x_offset, y_offset), GetColorU32(tab_bar_focused ? ImGuiCol_TabSelectedOverline : ImGuiCol_TabDimmedSelectedOverline), 2.0f * g.CurrentDpiScale);
     }
     RenderNavHighlight(bb, id);
+
+#endif
+
+#if 1
+    // Render tab shape
+    ImDrawList* display_draw_list = window->DrawList;
+    const ImU32 tab_col = GetColorU32((held || hovered) ? ImGuiCol_TabHovered : tab_contents_visible ? (tab_bar_focused ? ImGuiCol_TabActive : ImGuiCol_TabUnfocusedActive) : (tab_bar_focused ? ImGuiCol_Tab : ImGuiCol_TabUnfocused));
+    docked_window != NULL ? TabItemBackgroundSelected(display_draw_list, bb, flags, tab_col, tab_contents_visible && tab_bar_focused) : TabItemBackground(display_draw_list, bb, flags, tab_col);
+    RenderNavHighlight(bb, id);
+#endif
 
     // Select with right mouse button. This is so the common idiom for context menu automatically highlight the current widget.
     const bool hovered_unblocked = IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
